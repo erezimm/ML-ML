@@ -181,4 +181,4 @@ def getdataset(num_clean, num_microlensed, min_epochs, filesdir, saveto):
 
 if __name__ == "__main__":
     getdataset(num_clean=500, num_microlensed=500, min_epochs=20,
-               filesdir='/home/ofekb/euler1mnt/var/www/html/data/catsHTM/ZTF/LCDR1', saveto='asciis')
+               filesdir='/home/ofekb/euler1mnt/var/www/html/data/catsHTM/ZTF/LCDR1', saveto='training_set')

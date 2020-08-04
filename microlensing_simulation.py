@@ -10,6 +10,13 @@ import astropy.io.ascii
 
 from tqdm import tqdm
 
+"""
+This module makes use of Erez' class lc_cat (to be updates) in order to read the hdf5 files and somhow tell which one is
+a variable star and which isn't. Loading the deseired number of curves from all hdf5 files (euler1 should be mounted),
+it saves the final training/validation/whatever set in the deseired location, some of the lcs having gone through
+synthetic microlensing.
+"""
+
 
 class lc_cat:
     def __init__(self, h5_file):
@@ -54,7 +61,8 @@ def limit_data_points(file_name, min_epochs, num_lcs_toget):
 
 def get_lightcurves(num, filesdir, min_epochs):
     """
-    Reads the hdf5 files to return light curves (lcs).
+    Reads the hdf5 files to return light curves (lcs). Can be parallelized but it doesn't matter much because it'd only
+    run once.
 
     Args:
         num: how many lcs to return

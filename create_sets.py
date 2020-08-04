@@ -58,6 +58,11 @@ def limit_data_points(file_name, min_epochs, num_lcs_toget):
 
     return new_tab
 
+def customer_request_for_erez(num_var, num_const, min_epochs, filesdir):
+    pass
+    # each list has tuples (times, mags, magerrs)
+    # return list_of_vars, list_of_consts
+
 
 def get_lightcurves(num, filesdir, min_epochs):
     """

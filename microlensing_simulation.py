@@ -11,7 +11,7 @@ import astropy.io.ascii
 from tqdm import tqdm
 
 """
-This module makes use of Erez' class lc_cat (to be updates) in order to read the hdf5 files and somhow tell which one is
+This module makes use of Erez' class lc_cat (to be updated) in order to read the hdf5 files and somhow tell which one is
 a variable star and which isn't. Loading the deseired number of curves from all hdf5 files (euler1 should be mounted),
 it saves the final training/validation/whatever set in the deseired location, some of the lcs having gone through
 synthetic microlensing.

@@ -20,7 +20,8 @@ class lc_cat:
         variable_threshold - a dictionary containing the threshold criteria to classify a star as variable as a function fo filter and magnitude. 
                              The keys are magnitudes and the values are arrasy with the criteria for the robust std to classify a lightcurve as variable.
                              first value in the array is g band and second is r band.
-        variable_candidates - the ind_cat catalogue of all variable candidate stars based on robust Std
+        variable_candidates - the ind_cat catalogue of all variable candidate stars based on robust Std. accepts min_Nep as the number of minimum epochs for a variable source
+                              to be considered.
     """
 
     def __init__(self,h5_file,min_Nep=24):

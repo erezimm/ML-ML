@@ -1,95 +1,71 @@
 import os
 import random
 
-import h5py
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import astropy.table
 import astropy.io.ascii
-
+import astropy.table
+import matplotlib.pyplot as plt
+import numpy as np
+from joblib import delayed, Parallel
 from tqdm import tqdm
 
-"""
-This module makes use of Erez' class lc_cat (to be updated) in order to read the hdf5 files and somhow tell which one is
-a variable star and which isn't. Loading the deseired number of curves from all hdf5 files (euler1 should be mounted),
-it saves the final training/validation/whatever set in the deseired location, some of the lcs having gone through
-synthetic microlensing.
-"""
+from lc_cat import LcCat
 
 
-class lc_cat:
-    def __init__(self, h5_file):
-        self.cat_file = h5py.File(h5_file, 'r')
-        self.ind_cols = ['RA', 'Dec', 'I1', 'I2', 'Nep', 'ID', 'FilterID', 'Field', 'RcID', 'MeanMag', 'StdMag',
-                         'RStdMag', 'MaxMag', 'MinMag', 'Chi2', 'MaxPower', 'FreqMaxPower']
-        self.lc_data_name = 'AllLC'
-        self.lc_cols = ['HMJD', 'Mag', 'MagErr', 'ColorCoef', 'Flags']
-        self.ind_cat = self.load_ind()
-
-    def __getitem__(self, idx):
-        lc_idx = self.ind_cat.iloc(0)[idx]
-        lc_start = int(lc_idx['I1'])
-        lc_end = int(lc_idx['I2'])
-        lc_raw = np.array(self.cat_file[self.lc_data_name][0:5, lc_start - 1:lc_end])
-        lc = pd.DataFrame(lc_raw.transpose(), columns=self.lc_cols)
-        return lc
-
-    def __len__(self):
-        return len(self.ind_cat)
-
-    def load_ind(self, ind_name='IndAllLC'):
-        inds = np.array(self.cat_file[ind_name])
-        ind_cat = pd.DataFrame(inds.transpose(), columns=self.ind_cols)
-        return ind_cat
-
-
-def limit_data_points(file_name, min_epochs, num_lcs_toget):
-    """picks a random set of size num_lcs_toget out of the lcs in the file, who satisfy #epochs > num_epochs"""
-    table = lc_cat(file_name)
-    nep = table.ind_cat['Nep']
-    idx = nep[nep > min_epochs].index
-    idx = random.sample(list(idx), k=min(num_lcs_toget, len(idx)))
-
-    new_tab = []
-    for i in idx:
-        new = table[i]
-        new_tab.append((new['HMJD'], new['Mag'], new['MagErr']))
-
-    return new_tab
-
-def customer_request_for_erez(num_var, num_const, min_epochs, filesdir):
-    pass
-    # each list has tuples (times, mags, magerrs)
-    # return list_of_vars, list_of_consts
-
-
-def get_lightcurves(num, filesdir, min_epochs):
+def get_lightcurves(num_const, num_var, min_epochs, filesdir, saveto, files_to_use=-1):
     """
-    Reads the hdf5 files to return light curves (lcs). Can be parallelized but it doesn't matter much because it'd only
-    run once.
+    Produces a list of lightcurves from the variable stars data set, variable-candidate stars as they are and constant
+    stars after microlensing. Saved as plain column files (HMJD, Mag, MagErr) in the provided directory, with names
+    'microlensedconst_*' or 'cleanvar_*'.
 
     Args:
-        num: how many lcs to return
-        filesdir: directory of hdf5 files
+        num_const: number of constant star lcs to put through synthetic microlensing and write to a file (may write a few more in practice)
+        num_var: number of variable (candidate) stars lcs to write to a file as they are (may write a few more in practice)
         min_epochs: minimal number or data points the light curves will have
-    Returns:
-        lcs: a list of (timestamps, magintudes, errors)
+        filesdir: directory of hdf5 files
+        saveto: where to save the results
+        files_to_use: from how many (randomly chosen) files to get the deseired number of lcs (equally divided), -1 (default) means all
     """
+
+    if not os.path.isdir(saveto):
+        os.makedirs(saveto)
+
     filenames = os.listdir(filesdir)
-    random.shuffle(filenames)
-    max_from_file = int(np.ceil(num / len(filenames)))
+    if files_to_use == -1:
+        files_to_use = len(filenames)
+    filenames = random.sample(filenames, k=files_to_use)
 
-    lcs = []
-    # loop over all of the files in the directory
-    for filename in tqdm(filenames):
-        if len(lcs) >= num:
-            break
-        num_lcs_toget = min(max_from_file, num - len(lcs))
-        new_lcs = limit_data_points(os.path.join(filesdir, filename), min_epochs, num_lcs_toget=num_lcs_toget)
-        lcs.extend(new_lcs)
+    asciiname = {'const': 'microlensedconst_', 'var': 'cleanvar_'}
+    num = {'const': num_const, 'var': num_var}
+    num_from_file = {'const': {}, 'var': {}}
+    for k in ('const', 'var'):
+        floor = num[k] // len(filenames)
+        toadd = num[k] - floor * len(filenames)
+        for i, filename in enumerate(filenames):
+            num_from_file[k][filename] = floor + (i < toadd)
 
-    return lcs
+    def handlefile(filename):  # for filename in tqdm(filenames):
+        if num_from_file['const'][filename] == num_from_file['var'][filename] == 0:
+            return
+        filecat = LcCat(os.path.join(filesdir, filename))
+        for k in ('const', 'var'):
+            this_indcat = filecat.constants if k == 'const' else filecat.variable_candidates
+            nep = this_indcat['Nep']
+            idx = nep[nep > min_epochs].index
+            idx = random.sample(list(idx), k=min(num_from_file[k][filename], len(idx)))
+            for i in idx:
+                lc = filecat[i]
+                times, magnitudes, magerrs = lc['HMJD'], lc['Mag'], lc['MagErr']
+                if k == 'const':
+                    magnitudes = microlensingsimulation(times, magnitudes, magerrs, showplot=False)
+                tbl = astropy.table.Table()
+                tbl.add_columns(cols=[times, magnitudes, magerrs])
+                outname = asciiname[k] + filename + '_' + str(i)
+                astropy.io.ascii.write(tbl, os.path.join(saveto, outname), format='no_header')
+
+    Parallel(n_jobs=16, verbose=0)(delayed(handlefile)(filename) for filename in filenames)
+
+    # for filename in tqdm(filenames):
+    # handlefile(filename)
 
 
 def microlensingsimulation(timestamps, magnitudes, errors, showplot=False):
@@ -152,38 +128,7 @@ def microlensingsimulation(timestamps, magnitudes, errors, showplot=False):
     return amplified_magnitudes
 
 
-def getdataset(num_clean, num_microlensed, min_epochs, filesdir, saveto):
-    """
-     Produces a list of lightcurves from the variable stars data set, some as they are and some after microlensing.
-     Saved as plain column files (HMJD, Mag, MagErr) in the provided directory, with names "clean_*" or "microlensed_*".
-
-    Args:
-        num_clean: how many lcs to return directly from the ZTF dataset
-        num_microlensed: how many to return after synthetic microlensing
-        min_epochs: minimal number or data points the light curves will have
-        filesdir: directory of hdf5 files
-        saveto: where to save the results
-    """
-    print('Getting lcs from hdf5 files...')
-    lcs = get_lightcurves(num_clean + num_microlensed, filesdir, min_epochs)
-
-    if not os.path.isdir(saveto):
-        os.makedirs(saveto)
-
-    print('Saving clean lcs...')
-    for i, lc in tqdm(enumerate(lcs[0:num_clean])):
-        tbl = astropy.table.Table()
-        tbl.add_columns(cols=lc)
-        astropy.io.ascii.write(tbl, os.path.join(saveto, 'clean_' + str(i)), format='no_header')
-
-    print('Saving microlensed lcs...')
-    for i, lc in tqdm(enumerate(lcs[num_clean:num_clean + num_microlensed])):
-        amplified_magnitudes = microlensingsimulation(*lc, showplot=False)
-        tbl = astropy.table.Table()
-        tbl.add_columns(cols=[lc[0], amplified_magnitudes, lc[2]])
-        astropy.io.ascii.write(tbl, os.path.join(saveto, 'microlensed_' + str(i)), format='no_header')
-
-
 if __name__ == "__main__":
-    getdataset(num_clean=50, num_microlensed=50, min_epochs=20,
-               filesdir='/home/ofekb/euler1mnt/var/www/html/data/catsHTM/ZTF/LCDR1', saveto='training_set')
+    get_lightcurves(num_const=10000, num_var=10000, min_epochs=20,
+                    filesdir='/home/ofekb/euler1mnt/var/www/html/data/catsHTM/ZTF/LCDR1', saveto='data_set',
+                    files_to_use=-1)

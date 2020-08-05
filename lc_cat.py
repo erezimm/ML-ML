@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 
-class lc_cat:
+class LcCat:
     """
     This Class is made to acess the lightcurve catalogue from arXiv:2007.01537. 
     More info on the structure of the files can be found in the paper

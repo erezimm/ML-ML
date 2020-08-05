@@ -62,7 +62,7 @@ def get_lightcurves(num_const, num_var, min_epochs, filesdir, saveto, files_to_u
                 outname = asciiname[k] + filename + '_' + str(i)
                 astropy.io.ascii.write(tbl, os.path.join(saveto, outname), format='no_header')
 
-    Parallel(n_jobs=16, verbose=0)(delayed(handlefile)(filename) for filename in filenames)
+    Parallel(n_jobs=16)(delayed(handlefile)(filename) for filename in filenames)
 
     # for filename in tqdm(filenames):
     # handlefile(filename)

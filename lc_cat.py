@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+
 class lc_cat:
     """
     This Class is made to acess the lightcurve catalogue from arXiv:2007.01537. 
@@ -24,53 +25,54 @@ class lc_cat:
                               to be considered.
     """
 
-    def __init__(self,h5_file,min_Nep=24):
-        self.cat_file = h5py.File(h5_file,'r')
+    def __init__(self, h5_file, min_Nep=24):
+        self.cat_file = h5py.File(h5_file, 'r')
         self.deg_to_rad = 0.017453292519943295
         self.arcsec_to_rad = 4.84813681109536e-06
-        self.ind_cols = ['RA','Dec','I1','I2','Nep','ID','FilterID','Field','RcID','MeanMag','StdMag','RStdMag','MaxMag','MinMag','Chi2','MaxPower','FreqMaxPower']
+        self.ind_cols = ['RA', 'Dec', 'I1', 'I2', 'Nep', 'ID', 'FilterID', 'Field', 'RcID', 'MeanMag', 'StdMag',
+                         'RStdMag', 'MaxMag', 'MinMag', 'Chi2', 'MaxPower', 'FreqMaxPower']
         self.lc_data_name = 'AllLC'
-        self.lc_cols = ['HMJD','Mag','MagErr','ColorCoef','Flags']
+        self.lc_cols = ['HMJD', 'Mag', 'MagErr', 'ColorCoef', 'Flags']
         self.ind_cat = self.load_ind()
-        self.variable_threshold = {13:[0.0658,0.0411],
-                                13.5:[0.0605,0.0409],
-                                14:[0.0598,0.0421],
-                                14.5:[0.0615,0.0437],
-                                15:[0.0639,0.0452],
-                                15.5:[0.0662,0.0464],
-                                16:[0.0683,0.0481],
-                                16.5:[0.0708,0.0514],
-                                17:[0.0751,0.0581],
-                                17.5:[0.0831,0.0705],
-                                18:[0.0976,0.0915],
-                                18.5:[0.1222,0.1245],
-                                19:[0.1609,0.1736],
-                                19.5:[0.2189,0.2435],
-                                20:[0.3016,0.3393]}
-        self.variable_candidates,self.constants = self.find_variables(min_Nep)
+        self.variable_threshold = {13: [0.0658, 0.0411],
+                                   13.5: [0.0605, 0.0409],
+                                   14: [0.0598, 0.0421],
+                                   14.5: [0.0615, 0.0437],
+                                   15: [0.0639, 0.0452],
+                                   15.5: [0.0662, 0.0464],
+                                   16: [0.0683, 0.0481],
+                                   16.5: [0.0708, 0.0514],
+                                   17: [0.0751, 0.0581],
+                                   17.5: [0.0831, 0.0705],
+                                   18: [0.0976, 0.0915],
+                                   18.5: [0.1222, 0.1245],
+                                   19: [0.1609, 0.1736],
+                                   19.5: [0.2189, 0.2435],
+                                   20: [0.3016, 0.3393]}
+        self.variable_candidates, self.constants = self.find_variables(min_Nep)
 
-    def __getitem__(self,idx):
+    def __getitem__(self, idx):
         lc_idx = self.ind_cat.iloc(0)[idx]
         lc_start = int(lc_idx['I1'])
         lc_end = int(lc_idx['I2'])
-        lc_raw = np.array(self.cat_file[self.lc_data_name][0:5,lc_start-1:lc_end])
-        lc = pd.DataFrame(lc_raw.transpose(),columns=self.lc_cols)
+        lc_raw = np.array(self.cat_file[self.lc_data_name][0:5, lc_start - 1:lc_end])
+        lc = pd.DataFrame(lc_raw.transpose(), columns=self.lc_cols)
         return lc
 
     def __len__(self):
         return len(self.ind_cat)
 
-    def load_ind(self,ind_name='IndAllLC'):
+    def load_ind(self, ind_name='IndAllLC'):
         """
         This function loads the index table from the hdf5 file
         inputs:
             ind_name - the name of the data set which contains the indexes of all the light curves in the hdf5 file
         """
         inds = np.array(self.cat_file[ind_name])
-        ind_cat = pd.DataFrame(inds.transpose(),columns=self.ind_cols)
+        ind_cat = pd.DataFrame(inds.transpose(), columns=self.ind_cols)
         return ind_cat
 
-    def plot_lc(self,idx):
+    def plot_lc(self, idx):
         """
         A function that plots the light curve at index idx
         inputs:
@@ -78,21 +80,21 @@ class lc_cat:
         """
         # get the filter
         color = 'r'
-        filt = self.ind_cat[self.ind_cat.index==idx]['FilterID'].to_numpy()
+        filt = self.ind_cat[self.ind_cat.index == idx]['FilterID'].to_numpy()
         if filt == 1:
-            color='g'
-        #get the light-curve
+            color = 'g'
+        # get the light-curve
         lc = self.__getitem__(idx)
-        #plot
-        plt.errorbar(lc['HMJD'],lc['Mag'],yerr=lc['MagErr'],color=color,marker='o',ls='none')
+        # plot
+        plt.errorbar(lc['HMJD'], lc['Mag'], yerr=lc['MagErr'], color=color, marker='o', ls='none')
         plt.gca().invert_yaxis()
-        plt.xlabel('HJD',FontSize=16)
-        plt.ylabel('Magnitude',FontSize=16)
-        title_str = 'Lightcurve #'+str(idx)
-        plt.title(title_str,FontSize=16)
+        plt.xlabel('HJD', FontSize=16)
+        plt.ylabel('Magnitude', FontSize=16)
+        title_str = 'Lightcurve #' + str(idx)
+        plt.title(title_str, FontSize=16)
         plt.show()
 
-    def find_lc(self,ra,dec,radius=1.5,coo_unit='deg'):
+    def find_lc(self, ra, dec, radius=1.5, coo_unit='deg'):
         """
         A function that finds all the lightcurves within certain coordinates
         inputs:
@@ -103,37 +105,37 @@ class lc_cat:
                        if the input is in radians one should change from deg to something else.
         """
         if coo_unit == 'deg':
-            ra = ra*self.deg_to_rad
-            dec = dec*self.deg_to_rad
-        radius = radius*self.arcsec_to_rad
-        table = self.ind_cat[(self.ind_cat['RA']<ra+radius) & (self.ind_cat['RA']>ra-radius) 
-                                & (self.ind_cat['Dec']>dec-radius) & (self.ind_cat['Dec']<dec+radius)]
+            ra = ra * self.deg_to_rad
+            dec = dec * self.deg_to_rad
+        radius = radius * self.arcsec_to_rad
+        table = self.ind_cat[(self.ind_cat['RA'] < ra + radius) & (self.ind_cat['RA'] > ra - radius)
+                             & (self.ind_cat['Dec'] > dec - radius) & (self.ind_cat['Dec'] < dec + radius)]
         return table
-    
-    def round_05(self,number):
+
+    def round_05(self, number):
         """
         A function the rounds a number to the nearest half integer.
-        """       
-        return round(number*2)/2
-    
-    def find_variables(self,min_Nep=24):
+        """
+        return round(number * 2) / 2
+
+    def find_variables(self, min_Nep=24):
         """
         A function that finds variable sources candidates from the ind_cat catalogue.
         This is done by searching for light curves that pass the thershold of robust std in magnitude according to the criteria in the paper.
         Also returns an indicator table of what is percieved to be constant lightcurve sources.
         inputs:
             min_Nepp - minimum number of epochs per lightcurve to be considered a variable source
-        """       
+        """
         meanmags = self.ind_cat['MeanMag'].apply(self.round_05)
         var_indexes = []
-        for group in self.ind_cat.groupby([meanmags,'FilterID']):
-            meanmag= group[0][0]
+        for group in self.ind_cat.groupby([meanmags, 'FilterID']):
+            meanmag = group[0][0]
             filt = int(group[0][1])
             table = group[1]
             if meanmag in self.variable_threshold.keys():
-                thershold = self.variable_threshold[meanmag][filt-1]
-                g_variables = table[(table['RStdMag']>thershold) & (table['Nep'] >= min_Nep)]
+                thershold = self.variable_threshold[meanmag][filt - 1]
+                g_variables = table[(table['RStdMag'] > thershold) & (table['Nep'] >= min_Nep)]
                 var_indexes.extend(g_variables.index.to_list())
         variables = self.ind_cat[self.ind_cat.index.isin(var_indexes)]
         constants = self.ind_cat[np.logical_not(self.ind_cat.index.isin(var_indexes))]
-        return variables,constants
+        return variables, constants

@@ -17,7 +17,9 @@ class lc_cat:
         lc_cols - the light curve data columns
         ind_cat - the catalogue indexes. contains all the metadata of each light curve and it's position in the
                   h5df catalogue file
-        variable_thresh -   
+        variable_threshold - a dictionary containing the threshold criteria to classify a star as variable as a function fo filter and magnitude. 
+                             The keys are magnitudes and the values are arrasy with the criteria for the robust std to classify a lightcurve as variable.
+                             first value in the array is g band and second is r band.
     """
 
     def __init__(self,h5_file):
@@ -28,7 +30,21 @@ class lc_cat:
         self.lc_data_name = 'AllLC'
         self.lc_cols = ['HMJD','Mag','MagErr','ColorCoef','Flags']
         self.ind_cat = self.load_ind()
-        self.variable_thresh = {}
+        self.variable_threshold = {13:[0.0658,0.0411],
+                                13.5:[0.0605,0.0409],
+                                14:[0.0598,0.0421],
+                                14.5:[0.0615,0.0437],
+                                15:[0.0639,0.0452],
+                                15.5:[0.0662,0.0464],
+                                16:[0.0683,0.0481],
+                                16.5:[0.0708,0.0514],
+                                17:[0.0751,0.0581],
+                                17.5:[0.0831,0.0705],
+                                18:[0.0976,0.0915],
+                                18.5:[0.1222,0.1245],
+                                19:[0.1609,0.1736],
+                                19.5:[0.2189,0.2435],
+                                20:[0.3016,0.3393]}
 
     def __getitem__(self,idx):
         lc_idx = self.ind_cat.iloc(0)[idx]
@@ -60,7 +76,7 @@ class lc_cat:
         # get the filter
         color = 'r'
         filt = self.ind_cat[self.ind_cat.index==idx]['FilterID'].to_numpy()
-        if filt == 2:
+        if filt == 1:
             color='g'
         #get the light-curve
         lc = self.__getitem__(idx)
@@ -91,11 +107,19 @@ class lc_cat:
                                 & (self.ind_cat['Dec']>dec-radius) & (self.ind_cat['Dec']<dec+radius)]
         return table
     
+    def round_05(self,number):
+        return round(number*2)/2
+    
     def find_variables(self):
         """
         ***not implemented yet***
         A function that finds variable stars in the lightcurve according to some criteria
         inputs:
         ***not implemented yet***
-        """
-    return 0
+        """       
+        
+        # meanmags = self.ind_cat['MeanMag'].apply(a.round_05)
+        # for group in self.ind_cat.groupby([meanmags,'FilterId'])
+
+
+        return 0

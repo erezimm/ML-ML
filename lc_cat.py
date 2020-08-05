@@ -23,7 +23,7 @@ class lc_cat:
         variable_candidates - the ind_cat catalogue of all variable candidate stars based on robust Std
     """
 
-    def __init__(self,h5_file):
+    def __init__(self,h5_file,min_Nep=24):
         self.cat_file = h5py.File(h5_file,'r')
         self.deg_to_rad = 0.017453292519943295
         self.arcsec_to_rad = 4.84813681109536e-06
@@ -46,7 +46,7 @@ class lc_cat:
                                 19:[0.1609,0.1736],
                                 19.5:[0.2189,0.2435],
                                 20:[0.3016,0.3393]}
-        self.variable_candidates,self.constants = self.find_variables()
+        self.variable_candidates,self.constants = self.find_variables(min_Nep)
 
     def __getitem__(self,idx):
         lc_idx = self.ind_cat.iloc(0)[idx]

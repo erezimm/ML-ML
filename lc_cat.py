@@ -46,7 +46,7 @@ class lc_cat:
                                 19:[0.1609,0.1736],
                                 19.5:[0.2189,0.2435],
                                 20:[0.3016,0.3393]}
-        self.variable_candidates = self.find_variables()
+        self.variable_candidates,self.constants = self.find_variables()
 
     def __getitem__(self,idx):
         lc_idx = self.ind_cat.iloc(0)[idx]
@@ -115,12 +115,15 @@ class lc_cat:
         """       
         return round(number*2)/2
     
-    def find_variables(self):
+    def find_variables(self,min_Nep=24):
         """
         A function that finds variable sources candidates from the ind_cat catalogue.
         This is done by searching for light curves that pass the thershold of robust std in magnitude according to the criteria in the paper.
+        Also returns an indicator table of what is percieved to be constant lightcurve sources.
+        inputs:
+            min_Nepp - minimum number of epochs per lightcurve to be considered a variable source
         """       
-        meanmags = self.ind_cat['MeanMag'].apply(a.round_05)
+        meanmags = self.ind_cat['MeanMag'].apply(self.round_05)
         var_indexes = []
         for group in self.ind_cat.groupby([meanmags,'FilterID']):
             meanmag= group[0][0]
@@ -128,7 +131,8 @@ class lc_cat:
             table = group[1]
             if meanmag in self.variable_threshold.keys():
                 thershold = self.variable_threshold[meanmag][filt-1]
-                g_variables = table[table['RStdMag']>thershold]
+                g_variables = table[(table['RStdMag']>thershold) & (table['Nep'] >= min_Nep)]
                 var_indexes.extend(g_variables.index.to_list())
         variables = self.ind_cat[self.ind_cat.index.isin(var_indexes)]
-        return variables
+        constants = self.ind_cat[np.logical_not(self.ind_cat.index.isin(var_indexes))]
+        return variables,constants

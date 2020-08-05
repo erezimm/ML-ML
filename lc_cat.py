@@ -20,6 +20,7 @@ class lc_cat:
         variable_threshold - a dictionary containing the threshold criteria to classify a star as variable as a function fo filter and magnitude. 
                              The keys are magnitudes and the values are arrasy with the criteria for the robust std to classify a lightcurve as variable.
                              first value in the array is g band and second is r band.
+        variable_candidates - the ind_cat catalogue of all variable candidate stars based on robust Std
     """
 
     def __init__(self,h5_file):
@@ -45,6 +46,7 @@ class lc_cat:
                                 19:[0.1609,0.1736],
                                 19.5:[0.2189,0.2435],
                                 20:[0.3016,0.3393]}
+        self.variable_candidates = self.find_variables()
 
     def __getitem__(self,idx):
         lc_idx = self.ind_cat.iloc(0)[idx]
@@ -108,18 +110,25 @@ class lc_cat:
         return table
     
     def round_05(self,number):
+        """
+        A function the rounds a number to the nearest half integer.
+        """       
         return round(number*2)/2
     
     def find_variables(self):
         """
-        ***not implemented yet***
-        A function that finds variable stars in the lightcurve according to some criteria
-        inputs:
-        ***not implemented yet***
+        A function that finds variable sources candidates from the ind_cat catalogue.
+        This is done by searching for light curves that pass the thershold of robust std in magnitude according to the criteria in the paper.
         """       
-        
-        # meanmags = self.ind_cat['MeanMag'].apply(a.round_05)
-        # for group in self.ind_cat.groupby([meanmags,'FilterId'])
-
-
-        return 0
+        meanmags = self.ind_cat['MeanMag'].apply(a.round_05)
+        var_indexes = []
+        for group in self.ind_cat.groupby([meanmags,'FilterID']):
+            meanmag= group[0][0]
+            filt = int(group[0][1])
+            table = group[1]
+            if meanmag in self.variable_threshold.keys():
+                thershold = self.variable_threshold[meanmag][filt-1]
+                g_variables = table[table['RStdMag']>thershold]
+                var_indexes.extend(g_variables.index.to_list())
+        variables = self.ind_cat[self.ind_cat.index.isin(var_indexes)]
+        return variables

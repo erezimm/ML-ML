@@ -58,6 +58,11 @@ def limit_data_points(file_name, min_epochs, num_lcs_toget):
 
     return new_tab
 
+def customer_request_for_erez(num_var, num_const, min_epochs, filesdir):
+    pass
+    # each list has tuples (times, mags, magerrs)
+    # return list_of_vars, list_of_consts
+
 
 def get_lightcurves(num, filesdir, min_epochs):
     """
@@ -180,5 +185,5 @@ def getdataset(num_clean, num_microlensed, min_epochs, filesdir, saveto):
 
 
 if __name__ == "__main__":
-    getdataset(num_clean=500, num_microlensed=500, min_epochs=20,
+    getdataset(num_clean=50, num_microlensed=50, min_epochs=20,
                filesdir='/home/ofekb/euler1mnt/var/www/html/data/catsHTM/ZTF/LCDR1', saveto='training_set')

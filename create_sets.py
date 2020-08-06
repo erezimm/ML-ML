@@ -11,7 +11,7 @@ from tqdm import tqdm
 from lc_cat import LcCat
 
 
-def get_lightcurves(num_const, num_var, min_epochs, filesdir, saveto, files_to_use=-1):
+def make_dataset(num_const, num_var, min_epochs, filesdir, saveto, files_to_use=-1):
     """
     Produces a list of lightcurves from the variable stars data set, variable-candidate stars as they are and constant
     stars after microlensing. Saved as plain column files (HMJD, Mag, MagErr) in the provided directory, with names
@@ -44,27 +44,30 @@ def get_lightcurves(num_const, num_var, min_epochs, filesdir, saveto, files_to_u
             num_from_file[k][filename] = floor + (i < toadd)
 
     def handlefile(filename):  # for filename in tqdm(filenames):
-        if num_from_file['const'][filename] == num_from_file['var'][filename] == 0:
-            return
-        filecat = LcCat(os.path.join(filesdir, filename), min_Nep=min_epochs)
-        for k in ('const', 'var'):
-            this_indcat = filecat.constants if k == 'const' else filecat.variable_candidates
-            idx = this_indcat['Nep'].index  # ['Nep'] may be redundant, afraid to change it, unfamiliar w/ pandas
-            idx = random.sample(list(idx), k=min(num_from_file[k][filename], len(idx)))
-            for i in idx:
-                lc = filecat[i]
-                times, magnitudes, magerrs = lc['HMJD'], lc['Mag'], lc['MagErr']
-                if k == 'const':
-                    magnitudes = microlensingsimulation(times, magnitudes, magerrs, showplot=False)
-                tbl = astropy.table.Table()
-                tbl.add_columns(cols=[times, magnitudes, magerrs])
-                outname = asciiname[k] + filename + '_' + str(i)
-                astropy.io.ascii.write(tbl, os.path.join(saveto, outname), format='no_header', overwrite=True)
+        try:
+            if num_from_file['const'][filename] == num_from_file['var'][filename] == 0:
+                return
+            filecat = LcCat(os.path.join(filesdir, filename), min_Nep=min_epochs)
+            for k in ('const', 'var'):
+                this_indcat = filecat.constants if k == 'const' else filecat.variable_candidates
+                idx = this_indcat['Nep'].index  # ['Nep'] may be redundant, afraid to change it, unfamiliar w/ pandas
+                idx = random.sample(list(idx), k=min(num_from_file[k][filename], len(idx)))
+                for i in idx:
+                    lc = filecat[i]
+                    times, magnitudes, magerrs = lc['HMJD'], lc['Mag'], lc['MagErr']
+                    if k == 'const':
+                        magnitudes = microlensingsimulation(times, magnitudes, magerrs, showplot=False)
+                    tbl = astropy.table.Table()
+                    tbl.add_columns(cols=[times, magnitudes, magerrs])
+                    outname = asciiname[k] + filename + '_' + str(i)
+                    astropy.io.ascii.write(tbl, os.path.join(saveto, outname), format='no_header', overwrite=True)
+        finally:
+            print('Error during processing file:', filename)
 
-    Parallel(n_jobs=16)(delayed(handlefile)(filename) for filename in filenames)
+    Parallel(n_jobs=16, verbose=11)(delayed(handlefile)(filename) for filename in filenames)
 
     # for filename in tqdm(filenames):
-    # handlefile(filename)
+        # handlefile(filename)
 
 
 def microlensingsimulation(timestamps, magnitudes, errors, showplot=False):
@@ -128,5 +131,5 @@ def microlensingsimulation(timestamps, magnitudes, errors, showplot=False):
 
 
 if __name__ == "__main__":
-    get_lightcurves(num_const=10000, num_var=10000, min_epochs=20, files_to_use=-1,
-                    filesdir='/home/ofekb/euler1mnt/var/www/html/data/catsHTM/ZTF/LCDR1', saveto='data_set')
+    make_dataset(num_const=50, num_var=50, min_epochs=20, files_to_use=1,
+                 filesdir='/home/ofekb/euler1mnt/var/www/html/data/catsHTM/ZTF/LCDR1', saveto='data')

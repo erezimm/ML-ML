@@ -50,11 +50,13 @@ def make_dataset(num_const, num_var, min_epochs, filesdir, saveto, files_to_use=
             filecat = LcCat(os.path.join(filesdir, filename), min_Nep=min_epochs)
             for k in ('const', 'var'):
                 this_indcat = filecat.constants if k == 'const' else filecat.variable_candidates
-                idx = this_indcat['Nep'].index  # ['Nep'] may be redundant, afraid to change it, unfamiliar w/ pandas
+                idx = this_indcat['Nep'][this_indcat['Nep'] > min_epochs].index
                 idx = random.sample(list(idx), k=min(num_from_file[k][filename], len(idx)))
                 for i in idx:
                     lc = filecat[i]
                     times, magnitudes, magerrs = lc['HMJD'], lc['Mag'], lc['MagErr']
+                    # plt.scatter(times, magnitudes)
+                    # plt.show()
                     if k == 'const':
                         magnitudes = microlensingsimulation(times, magnitudes, magerrs, showplot=False)
                     tbl = astropy.table.Table()
@@ -93,7 +95,7 @@ def microlensingsimulation(timestamps, magnitudes, errors, showplot=False):
         g = random.uniform(1, 10)  # unitless
         t0 = random.uniform(np.percentile(timestamps, 10), np.percentile(timestamps, 90))  # days
 
-        between = [i for i, timestamp in enumerate(timestamps) if t0 - tE < timestamp < t0 + tE]
+        between = [i for i in range(len(timestamps)) if t0 - tE < timestamps[i] < t0 + tE]
         c1 = len(between) >= 7
         if not c1:
             continue

@@ -50,7 +50,8 @@ def make_dataset(num_const, num_var, min_epochs, filesdir, saveto, files_to_use=
             filecat = LcCat(os.path.join(filesdir, filename), min_Nep=min_epochs)
             for k in ('const', 'var'):
                 this_indcat = filecat.constants if k == 'const' else filecat.variable_candidates
-                idx = this_indcat['Nep'][this_indcat['Nep'] > min_epochs].index
+                nep = this_indcat['Nep']
+                idx = nep[nep > min_epochs].index
                 idx = random.sample(list(idx), k=min(num_from_file[k][filename], len(idx)))
                 for i in idx:
                     lc = filecat[i]
@@ -63,7 +64,7 @@ def make_dataset(num_const, num_var, min_epochs, filesdir, saveto, files_to_use=
                     tbl.add_columns(cols=[times, magnitudes, magerrs])
                     outname = asciiname[k] + filename + '_' + str(i)
                     astropy.io.ascii.write(tbl, os.path.join(saveto, outname), format='no_header', overwrite=True)
-        finally:
+        except:
             print('Error during processing file:', filename)
 
     Parallel(n_jobs=16, verbose=11)(delayed(handlefile)(filename) for filename in filenames)
@@ -133,5 +134,5 @@ def microlensingsimulation(timestamps, magnitudes, errors, showplot=False):
 
 
 if __name__ == "__main__":
-    make_dataset(num_const=50, num_var=50, min_epochs=20, files_to_use=1,
+    make_dataset(num_const=5000, num_var=5000, min_epochs=20, files_to_use=5,
                  filesdir='/home/ofekb/euler1mnt/var/www/html/data/catsHTM/ZTF/LCDR1', saveto='data')

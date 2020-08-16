@@ -134,5 +134,5 @@ def microlensingsimulation(timestamps, magnitudes, errors, showplot=False):
 
 
 if __name__ == "__main__":
-    make_dataset(num_const=5000, num_var=5000, min_epochs=20, files_to_use=5,
-                 filesdir='/home/ofekb/euler1mnt/var/www/html/data/catsHTM/ZTF/LCDR1', saveto='data')
+    make_dataset(num_const=10*5000, num_var=10*5000, min_epochs=20, files_to_use=-1,
+                 filesdir='/home/ofekb/euler1mnt/var/www/html/data/catsHTM/ZTF/LCDR1', saveto='/home/ofekb/data/ML_validdata')

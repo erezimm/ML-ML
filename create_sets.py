@@ -140,7 +140,24 @@ def microlensingsimulation(timestamps, magnitudes, errors, showplot=False):
 
 
 if __name__ == "__main__":
-    saveto = '/home/ofekb/data/data_g'
+    saveto = '/home/ofekb/data/data_r_capped'
+
+    make_dataset(num_const=20000, num_var=20000, min_epochs=20, files_to_use=-1, filt=2,
+                 filesdir='/home/ofekb/euler1mnt/var/www/html/data/catsHTM/ZTF/LCDR1', saveto=saveto, n_jobs=16)
+
+    var = const = 0
+    for nm in os.listdir(saveto):
+        if nm.startswith('microlensedconst_'):
+            const += 1
+        elif nm.startswith('cleanvar_'):
+            var += 1
+    print(const, 'microlensed constant stars and', var, 'clean variable candidates')
+
+
+
+
+
+    saveto = '/home/ofekb/data/data_g_capped'
 
     make_dataset(num_const=20000, num_var=20000, min_epochs=20, files_to_use=-1, filt=1,
                  filesdir='/home/ofekb/euler1mnt/var/www/html/data/catsHTM/ZTF/LCDR1', saveto=saveto, n_jobs=16)

@@ -118,7 +118,7 @@ class LcCat:
         """
         return round(number * 2) / 2
 
-    def find_variables(self, min_Nep=24):
+    def find_variables(self, min_Nep=24,max_mag=16.0):
         """
         A function that finds variable sources candidates from the ind_cat catalogue.
         This is done by searching for light curves that pass the thershold of robust std in magnitude according to the criteria in the paper.
@@ -134,8 +134,9 @@ class LcCat:
             table = group[1]
             if meanmag in self.variable_threshold.keys():
                 thershold = self.variable_threshold[meanmag][filt - 1]
-                g_variables = table[(table['RStdMag'] > thershold) & (table['Nep'] >= min_Nep)]
+                g_variables = table[(table['RStdMag'] > thershold) & (table['Nep'] >= min_Nep) &(table['MeanMag']>max_mag)]
                 var_indexes.extend(g_variables.index.to_list())
         variables = self.ind_cat[self.ind_cat.index.isin(var_indexes)]
         constants = self.ind_cat[np.logical_not(self.ind_cat.index.isin(var_indexes))]
+        constants = constants[constants['MeanMag']>max_mag]
         return variables, constants

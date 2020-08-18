@@ -43,13 +43,13 @@ def make_dataset(num_const, num_var, min_epochs, filesdir, saveto, files_to_use=
         for i, filename in enumerate(filenames):
             num_from_file[k][filename] = floor + (i < toadd)
 
-    def handlefile(filename):  # for filename in tqdm(filenames):
+    def handlefile(filename,filt):  # for filename in tqdm(filenames):
         try:
             if num_from_file['const'][filename] == num_from_file['var'][filename] == 0:
                 return
             filecat = LcCat(os.path.join(filesdir, filename), min_Nep=min_epochs)
             for k in ('const', 'var'):
-                this_indcat = filecat.constants if k == 'const' else filecat.variable_candidates
+                this_indcat = filecat.constants[filecat.constants['FilterID']==filt] if k == 'const' else filecat.variable_candidates[filecat.variable_candidates['FilterID']==filt]
                 nep = this_indcat['Nep']
                 idx = nep[nep > min_epochs].index
                 idx = random.sample(list(idx), k=min(num_from_file[k][filename], len(idx)))

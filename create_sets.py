@@ -10,20 +10,23 @@ from tqdm import tqdm
 
 from lc_cat import LcCat
 
+id2filter = {2: 'r', 1: 'g'}
 
-def make_dataset(num_const, num_var, min_epochs, filesdir, saveto, files_to_use=-1):
+
+def make_dataset(num_const, num_var, filt, min_epochs, filesdir, saveto, files_to_use=-1, n_jobs=16):
     """
     Produces a list of lightcurves from the variable stars data set, variable-candidate stars as they are and constant
     stars after microlensing. Saved as plain column files (HMJD, Mag, MagErr) in the provided directory, with names
     'microlensedconst_*' or 'cleanvar_*'.
 
     Args:
-        num_const: number of constant star lcs to put through synthetic microlensing and write to a file (may write a few more in practice)
-        num_var: number of variable (candidate) stars lcs to write to a file as they are (may write a few more in practice)
+        num_const: number of constant star lcs to put through synthetic microlensing and write to a file
+        num_var: number of variable (candidate) stars lcs to write to a file as they are
         min_epochs: minimal number or data points the light curves will have
         filesdir: directory of hdf5 files
         saveto: where to save the results
         files_to_use: from how many (randomly chosen) files to get the deseired number of lcs (equally divided), -1 (default) means all
+        n_jobs: for parallelization
     """
 
     if not os.path.isdir(saveto):
@@ -43,16 +46,18 @@ def make_dataset(num_const, num_var, min_epochs, filesdir, saveto, files_to_use=
         for i, filename in enumerate(filenames):
             num_from_file[k][filename] = floor + (i < toadd)
 
-    def handlefile(filename,filt):  # for filename in tqdm(filenames):
+    def handlefile(filename):
         try:
             if num_from_file['const'][filename] == num_from_file['var'][filename] == 0:
                 return
             filecat = LcCat(os.path.join(filesdir, filename), min_Nep=min_epochs)
             for k in ('const', 'var'):
-                this_indcat = filecat.constants[filecat.constants['FilterID']==filt] if k == 'const' else filecat.variable_candidates[filecat.variable_candidates['FilterID']==filt]
+                this_indcat = filecat.constants[filecat.constants['FilterID'] == filt] if k == 'const' else \
+                    filecat.variable_candidates[filecat.variable_candidates['FilterID'] == filt]
+                # this_indcat = filecat.constants if k == 'const' else filecat.variable_candidates
                 nep = this_indcat['Nep']
                 idx = nep[nep > min_epochs].index
-                idx = random.sample(list(idx), k=min(num_from_file[k][filename], len(idx)))
+                idx = random.sample(list(idx), k=int(min(num_from_file[k][filename], len(idx))))
                 for i in idx:
                     lc = filecat[i]
                     times, magnitudes, magerrs = lc['HMJD'], lc['Mag'], lc['MagErr']
@@ -67,10 +72,11 @@ def make_dataset(num_const, num_var, min_epochs, filesdir, saveto, files_to_use=
         except:
             print('Error during processing file:', filename)
 
-    Parallel(n_jobs=16, verbose=11)(delayed(handlefile)(filename) for filename in filenames)
-
-    # for filename in tqdm(filenames):
-        # handlefile(filename)
+    if n_jobs > 1:
+        Parallel(n_jobs=16, verbose=11)(delayed(handlefile)(filename) for filename in filenames)
+    else:
+        for filename in tqdm(filenames):
+            handlefile(filename)
 
 
 def microlensingsimulation(timestamps, magnitudes, errors, showplot=False):
@@ -134,5 +140,15 @@ def microlensingsimulation(timestamps, magnitudes, errors, showplot=False):
 
 
 if __name__ == "__main__":
-    make_dataset(num_const=10*5000, num_var=10*5000, min_epochs=20, files_to_use=-1,
-                 filesdir='/home/ofekb/euler1mnt/var/www/html/data/catsHTM/ZTF/LCDR1', saveto='/home/ofekb/data/ML_validdata')
+    saveto = '/home/ofekb/data/data_g'
+
+    make_dataset(num_const=20000, num_var=20000, min_epochs=20, files_to_use=-1, filt=1,
+                 filesdir='/home/ofekb/euler1mnt/var/www/html/data/catsHTM/ZTF/LCDR1', saveto=saveto, n_jobs=16)
+
+    var = const = 0
+    for nm in os.listdir(saveto):
+        if nm.startswith('microlensedconst_'):
+            const += 1
+        elif nm.startswith('cleanvar_'):
+            var += 1
+    print(const, 'microlensed constant stars and', var, 'clean variable candidates')

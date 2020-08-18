@@ -10,7 +10,9 @@ from tqdm import tqdm
 
 from lc_cat import LcCat
 
-id2filter = {2:'r', 1:'g'}
+id2filter = {2: 'r', 1: 'g'}
+
+
 def make_dataset(num_const, num_var, filt, min_epochs, filesdir, saveto, files_to_use=-1, n_jobs=16):
     """
     Produces a list of lightcurves from the variable stars data set, variable-candidate stars as they are and constant
@@ -51,7 +53,7 @@ def make_dataset(num_const, num_var, filt, min_epochs, filesdir, saveto, files_t
             filecat = LcCat(os.path.join(filesdir, filename), min_Nep=min_epochs)
             for k in ('const', 'var'):
                 this_indcat = filecat.constants[filecat.constants['FilterID'] == filt] if k == 'const' else \
-                filecat.variable_candidates[filecat.variable_candidates['FilterID'] == filt]
+                    filecat.variable_candidates[filecat.variable_candidates['FilterID'] == filt]
                 # this_indcat = filecat.constants if k == 'const' else filecat.variable_candidates
                 nep = this_indcat['Nep']
                 idx = nep[nep > min_epochs].index
@@ -138,10 +140,10 @@ def microlensingsimulation(timestamps, magnitudes, errors, showplot=False):
 
 
 if __name__ == "__main__":
-    saveto = '/home/ofekb/data/data_r'
+    saveto = '/home/ofekb/data/data_g'
 
-    make_dataset(num_const=20000, num_var=20000, min_epochs=20, files_to_use=-1, filt=2,
-                 filesdir='/home/ofekb/euler1mnt/var/www/html/data/catsHTM/ZTF/LCDR1', saveto=saveto,n_jobs=16)
+    make_dataset(num_const=20000, num_var=20000, min_epochs=20, files_to_use=-1, filt=1,
+                 filesdir='/home/ofekb/euler1mnt/var/www/html/data/catsHTM/ZTF/LCDR1', saveto=saveto, n_jobs=16)
 
     var = const = 0
     for nm in os.listdir(saveto):
